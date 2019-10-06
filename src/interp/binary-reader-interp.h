@@ -26,18 +26,24 @@ namespace interp {
 
 struct Module;
 struct DefinedModule;
+struct ModuleMetadata;
 class Environment;
 
 }  // namespace interp
 
 struct ReadBinaryOptions;
 
+Result ReadBinaryMetadata(const void* data,
+                          size_t size,
+                          const ReadBinaryOptions& options,
+                          Errors*,
+                          interp::ModuleMetadata** out_metadata);
+
 Result ReadBinaryInterp(interp::Environment* env,
                         const void* data,
                         size_t size,
                         const ReadBinaryOptions& options,
                         Errors*,
-                        interp::Module** out_module,
                         interp::DefinedModule** out_module_instance);
 
 }  // namespace wabt

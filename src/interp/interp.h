@@ -309,11 +309,10 @@ struct Export {
 
 class Environment;
 
-struct Module {
-  WABT_DISALLOW_COPY_AND_ASSIGN(Module);
-  Module();
-  IstreamOffset istream_start;
-  IstreamOffset istream_end;
+struct ModuleMetadata {
+  WABT_DISALLOW_COPY_AND_ASSIGN(ModuleMetadata);
+  ModuleMetadata();
+  std::vector<Import> imports;
 };
 
 struct ModuleInstance {
@@ -353,6 +352,8 @@ struct DefinedModule : ModuleInstance {
   std::vector<GlobalImport> global_imports;
   std::vector<EventImport> event_imports;
   Index start_func_index; /* kInvalidIndex if not defined */
+  IstreamOffset istream_start;
+  IstreamOffset istream_end;
 };
 
 struct HostModule : ModuleInstance {
@@ -538,7 +539,7 @@ class Environment {
   void ResetToMarkPoint(const MarkPoint&);
 
   void Disassemble(Stream* stream, IstreamOffset from, IstreamOffset to);
-  void DisassembleModule(Stream* stream, Module*);
+  void DisassembleModule(Stream* stream, DefinedModule*);
 
   // Called when a module name isn't found in registered_module_bindings_. If
   // you want to provide a module with this name, call AppendHostModule() with

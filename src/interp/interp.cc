@@ -244,13 +244,13 @@ Index ModuleInstance::AppendExport(ExternalKind kind,
   return exports.size() - 1;
 }
 
-Module::Module()
-    : istream_start(kInvalidIstreamOffset),
-      istream_end(kInvalidIstreamOffset) {}
+ModuleMetadata::ModuleMetadata() {}
 
 DefinedModule::DefinedModule()
     : ModuleInstance(false),
-      start_func_index(kInvalidIndex) {}
+      start_func_index(kInvalidIndex),
+      istream_start(kInvalidIstreamOffset),
+      istream_end(kInvalidIstreamOffset) {}
 
 HostModule::HostModule(Environment* env, string_view name)
     : ModuleInstance(name, true), env_(env) {}

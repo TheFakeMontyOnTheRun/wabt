@@ -1904,14 +1904,47 @@ wabt::Result BinaryReaderInterp::InitializeSegments() {
   return wabt::Result::Ok;
 }
 
+class BinaryReaderMetadata : public BinaryReaderNop {
+ public:
+  BinaryReaderMetadata(ModuleMetadata* metadata,
+                       Errors* errors,
+                       const Features& features) : metadata_(metadata) {
+  }
+  wabt::Result OnImport(Index index,
+                        ExternalKind kind,
+                        string_view module_name,
+                        string_view field_name) override {
+    metadata_->imports.emplace_back(kind, module_name, field_name);
+    return wabt::Result::Ok;
+  }
+
+ private:
+  ModuleMetadata* metadata_;
+};
+
 }  // end anonymous namespace
+
+wabt::Result ReadBinaryMetadata(const void* data,
+                                size_t size,
+                                const ReadBinaryOptions& options,
+                                Errors* errors,
+                                ModuleMetadata** out_metadata) {
+  ModuleMetadata* metadata = new ModuleMetadata();
+  BinaryReaderMetadata reader(metadata, errors, options.features);
+  wabt::Result result = ReadBinary(data, size, &reader, options);
+  if (!Succeeded(result)) {
+    delete metadata;
+    return result;
+  }
+  *out_metadata = metadata;
+  return result;
+}
 
 wabt::Result ReadBinaryInterp(Environment* env,
                               const void* data,
                               size_t size,
                               const ReadBinaryOptions& options,
                               Errors* errors,
-                              Module** out_module,
                               DefinedModule** out_module_instance) {
   // Need to mark before taking ownership of env->istream.
   Environment::MarkPoint mark = env->Mark();
@@ -1928,13 +1961,11 @@ wabt::Result ReadBinaryInterp(Environment* env,
   env->SetIstream(reader.ReleaseOutputBuffer());
 
   if (Succeeded(result)) {
-    Module* mod = new Module();
-    mod->istream_start = istream_offset;
-    mod->istream_end = env->istream().size();
-    *out_module = mod;
 
     result = reader.InitializeSegments();
     if (Succeeded(result)) {
+      module->istream_start = istream_offset;
+      module->istream_end = env->istream().size();
       *out_module_instance = module;
     } else {
       // We failed to initialize data and element segments, but we can't reset

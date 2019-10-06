@@ -223,7 +223,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${WABT_SOURCE_DIR}/cmake)
 
 add_custom_target(everything)
 
-add_library(wabt STATIC
+set(WABT_LIBRARY_SRC
   src/apply-names.h
   src/apply-names.cc
   src/binary.h
@@ -311,6 +311,11 @@ add_library(wabt STATIC
   src/interp/interp-trace.cc
 )
 
+add_library(wabt STATIC ${WABT_LIBRARY_SRC})
+
+# libwasm, which implenents the wasm C API
+add_library(wasm SHARED ${WABT_LIBRARY_SRC} src/interp/interp-wasm-c-api.cc)
+target_link_libraries(wasm wabt)
 
 if (NOT EMSCRIPTEN)
   if (CODE_COVERAGE)
@@ -492,6 +497,11 @@ if (NOT EMSCRIPTEN)
       SOURCES ${UNITTESTS_SRCS}
       LIBS gtest_main gtest ${CMAKE_THREAD_LIBS_INIT}
     )
+
+    add_executable(wasm-c-api-hello third_party/wasm-c-api/example/hello.c)
+    target_link_libraries(wasm-c-api-hello wasm)
+    include_directories(third_party/wasm-c-api/include)
+    add_definitions(-Wno-old-style-cast)
 
     if (NOT CMAKE_VERSION VERSION_LESS "3.2")
       set(USES_TERMINAL USES_TERMINAL)
