@@ -308,14 +308,15 @@ struct Export {
 };
 
 class Environment;
-struct DefinedModule;
-struct HostModule;
 
-struct Module {
-  WABT_DISALLOW_COPY_AND_ASSIGN(Module);
-  explicit Module(bool is_host);
-  Module(string_view name, bool is_host);
-  virtual ~Module() = default;
+//struct Module {
+//};
+
+struct ModuleInstance {
+  WABT_DISALLOW_COPY_AND_ASSIGN(ModuleInstance);
+  explicit ModuleInstance(bool is_host);
+  ModuleInstance(string_view name, bool is_host);
+  virtual ~ModuleInstance() = default;
 
   // Function exports are special-cased to allow for overloading functions by
   // name.
@@ -334,9 +335,9 @@ struct Module {
   bool is_host;
 };
 
-struct DefinedModule : Module {
+struct DefinedModule : ModuleInstance {
   DefinedModule();
-  static bool classof(const Module* module) { return !module->is_host; }
+  static bool classof(const ModuleInstance* module) { return !module->is_host; }
 
   Index OnUnknownFuncExport(string_view name, Index sig_index) override {
     return kInvalidIndex;
@@ -352,9 +353,9 @@ struct DefinedModule : Module {
   IstreamOffset istream_end;
 };
 
-struct HostModule : Module {
+struct HostModule : ModuleInstance {
   HostModule(Environment* env, string_view name);
-  static bool classof(const Module* module) { return module->is_host; }
+  static bool classof(const ModuleInstance* module) { return module->is_host; }
 
   Index OnUnknownFuncExport(string_view name, Index sig_index) override;
 
@@ -458,16 +459,16 @@ class Environment {
     assert(index < elem_segments_.size());
     return &elem_segments_[index];
   }
-  Module* GetModule(Index index) {
+  ModuleInstance* GetModule(Index index) {
     assert(index < modules_.size());
     return modules_[index].get();
   }
 
-  Module* GetLastModule() {
+  ModuleInstance* GetLastModule() {
     return modules_.empty() ? nullptr : modules_.back().get();
   }
-  Module* FindModule(string_view name);
-  Module* FindRegisteredModule(string_view name);
+  ModuleInstance* FindModule(string_view name);
+  ModuleInstance* FindRegisteredModule(string_view name);
 
   template <typename... Args>
   FuncSignature* EmplaceBackFuncSignature(Args&&... args) {
@@ -512,7 +513,7 @@ class Environment {
   }
 
   template <typename... Args>
-  Module* EmplaceBackModule(Args&&... args) {
+  ModuleInstance* EmplaceBackModule(Args&&... args) {
     modules_.emplace_back(std::forward<Args>(args)...);
     return modules_.back().get();
   }
@@ -535,7 +536,7 @@ class Environment {
   void ResetToMarkPoint(const MarkPoint&);
 
   void Disassemble(Stream* stream, IstreamOffset from, IstreamOffset to);
-  void DisassembleModule(Stream* stream, Module*);
+  void DisassembleModule(Stream* stream, ModuleInstance*);
 
   // Called when a module name isn't found in registered_module_bindings_. If
   // you want to provide a module with this name, call AppendHostModule() with
@@ -545,7 +546,7 @@ class Environment {
  private:
   friend class Thread;
 
-  std::vector<std::unique_ptr<Module>> modules_;
+  std::vector<std::unique_ptr<ModuleInstance>> modules_;
   std::vector<FuncSignature> sigs_;
   std::vector<std::unique_ptr<Func>> funcs_;
   std::vector<Memory> memories_;
@@ -700,7 +701,7 @@ class Executor {
   ExecResult RunFunction(Index func_index, const TypedValues& args);
   ExecResult RunStartFunction(DefinedModule* module);
   ExecResult RunExport(const Export*, const TypedValues& args);
-  ExecResult RunExportByName(Module* module,
+  ExecResult RunExportByName(ModuleInstance* module,
                              string_view name,
                              const TypedValues& args);
 
